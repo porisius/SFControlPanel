@@ -1,0 +1,20 @@
+{
+  "name": "satisfactory-control-panel",
+  "version": "0.1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c"
+  },
+  "dependencies": {
+    "@elgato/streamdeck": "^2.0.0",
+    "tslib": "^2.8.1"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.6",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-typescript": "^12.1.4",
+    "rollup": "^4.40.0",
+    "typescript": "^5.8.3"
+  }
+}

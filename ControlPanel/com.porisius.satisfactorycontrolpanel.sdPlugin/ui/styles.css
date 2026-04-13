@@ -1,0 +1,37 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 12px;
+  color: #ddd;
+  background: #1d1d1d;
+}
+fieldset {
+  border: 1px solid #3a3a3a;
+  margin-bottom: 12px;
+  padding: 10px;
+}
+legend {
+  color: #f0f0f0;
+  padding: 0 6px;
+}
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+input, select, button {
+  width: 100%;
+  margin-top: 4px;
+  background: #2a2a2a;
+  color: #f0f0f0;
+  border: 1px solid #4b4b4b;
+  padding: 6px 8px;
+  box-sizing: border-box;
+}
+button {
+  cursor: pointer;
+}
+.hint {
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 4px;
+}

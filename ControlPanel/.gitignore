@@ -1,0 +1,33 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build output
+dist/
+build/
+coverage/
+
+# Stream Deck plugin build output
+com.porisius.satisfactorycontrolpanel.sdPlugin/bin/
+*.map
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Env / local overrides
+.env
+.env.*
+*.local
+
+# TypeScript
+*.tsbuildinfo
+
+# Optional archives
+*.zip
+*.streamDeckPlugin

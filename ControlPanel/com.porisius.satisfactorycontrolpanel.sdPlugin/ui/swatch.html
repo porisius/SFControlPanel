@@ -1,0 +1,164 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Satisfactory Control Panel - Swatch</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="common.js"></script>
+    <script>
+      function collectSettings() {
+        const buttonLabel = document.querySelector('[name="buttonLabel"]').value.trim();
+        const portRaw = document.querySelector('[name="port"]').value.trim();
+        const descriptor = document.querySelector('[name="descriptor"]').value.trim();
+        const friendlyName = document.querySelector('[name="friendlyName"]').value.trim();
+        const primaryColor = document.querySelector('[name="primaryColor"]').value.trim();
+        const secondaryColor = document.querySelector('[name="secondaryColor"]').value.trim();
+
+        return {
+          buttonLabel,
+          port: Number.parseInt(portRaw || "59384", 10),
+          descriptor,
+          friendlyName,
+          primaryColor,
+          secondaryColor
+        };
+      }
+
+      function ensureDescriptorOption(select, descriptor, friendlyName) {
+        if (!descriptor) return;
+        const existing = Array.from(select.options).find(opt => opt.value === descriptor);
+        if (existing) {
+          select.value = descriptor;
+          return;
+        }
+        const opt = document.createElement("option");
+        opt.value = descriptor;
+        opt.textContent = friendlyName || descriptor;
+        opt.dataset.friendlyName = friendlyName || "";
+        select.appendChild(opt);
+        select.value = descriptor;
+      }
+
+      async function refreshSwatches() {
+        const port = Number.parseInt(document.querySelector('[name="port"]').value || "59384", 10);
+        const select = document.getElementById("descriptorSelect");
+        const saved = getSavedSettings();
+        const savedDescriptor = saved.descriptor || "";
+        const savedFriendlyName = saved.friendlyName || "";
+
+        select.innerHTML = '<option value="">Loading…</option>';
+        updateInspectorStatus("Loading swatches...");
+
+        try {
+          const data = await loadJson(`http://localhost:${port}/api/v1/swatch/list`);
+          select.innerHTML = '<option value="">Select swatch…</option>';
+
+          for (const item of data) {
+            const descriptor = item.descriptor ?? "";
+            const friendlyName = item.friendlyName ?? descriptor;
+
+            const opt = document.createElement("option");
+            opt.value = descriptor;
+            opt.textContent = friendlyName;
+            opt.dataset.friendlyName = friendlyName;
+            opt.dataset.primaryColor = item.PrimaryColor ?? item.primaryColor ?? "";
+            opt.dataset.secondaryColor = item.SecondaryColor ?? item.secondaryColor ?? "";
+            select.appendChild(opt);
+          }
+
+          ensureDescriptorOption(select, savedDescriptor, savedFriendlyName);
+          updateInspectorStatus("Swatches loaded");
+        } catch (error) {
+          console.error(error);
+          select.innerHTML = '<option value="">Failed to load swatches</option>';
+          updateInspectorStatus("Failed to load swatches");
+        }
+      }
+
+      function saveNow() {
+        setSettings(collectSettings());
+      }
+
+      async function applyLoadedSettings(settings) {
+        const form = document.getElementById("settingsForm");
+        const select = document.getElementById("descriptorSelect");
+        applySettingsToForm(form, settings || {});
+        await refreshSwatches();
+        ensureDescriptorOption(select, settings?.descriptor || "", settings?.friendlyName || "");
+        updateInspectorStatus("Settings loaded");
+      }
+
+      document.addEventListener("DOMContentLoaded", async () => {
+        const form = document.getElementById("settingsForm");
+        const select = document.getElementById("descriptorSelect");
+        const portInput = document.querySelector('[name="port"]');
+
+        window.addEventListener("scp:settings", async (ev) => {
+          await applyLoadedSettings(ev.detail || {});
+        });
+
+        form.addEventListener("change", saveNow);
+
+        select.addEventListener("change", () => {
+          const option = select.selectedOptions[0];
+          const descriptor = option?.value || "";
+          const friendlyName = option?.dataset?.friendlyName || "";
+          const primaryColor = option?.dataset?.primaryColor || "";
+          const secondaryColor = option?.dataset?.secondaryColor || "";
+          document.querySelector('[name="descriptor"]').value = descriptor;
+          document.querySelector('[name="friendlyName"]').value = friendlyName;
+          document.querySelector('[name="primaryColor"]').value = primaryColor;
+          document.querySelector('[name="secondaryColor"]').value = secondaryColor;
+          saveNow();
+        });
+
+        document.getElementById("refreshButton").addEventListener("click", async () => {
+          await refreshSwatches();
+          saveNow();
+        });
+
+        portInput.addEventListener("change", async () => {
+          await refreshSwatches();
+          saveNow();
+        });
+
+        const cached = getSavedSettings();
+        if (cached && Object.keys(cached).length > 0) {
+          await applyLoadedSettings(cached);
+        } else {
+          updateInspectorStatus("Waiting for settings...");
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <form id="settingsForm">
+      <fieldset>
+        <legend>Swatch Action</legend>
+
+        <label>Optional Text Override
+          <input name="buttonLabel" placeholder="Blank = icon only. Use \n for 2 lines." />
+        </label>
+
+        <label>Port
+          <input name="port" type="number" value="59384" />
+        </label>
+
+        <label>Swatch
+          <select id="descriptorSelect">
+            <option value="">Select swatch…</option>
+          </select>
+        </label>
+
+        <button type="button" id="refreshButton">Refresh Swatches</button>
+      </fieldset>
+
+      <input type="hidden" name="descriptor" />
+      <input type="hidden" name="friendlyName" />
+      <input type="hidden" name="primaryColor" />
+      <input type="hidden" name="secondaryColor" />
+
+      <div class="hint" id="statusText">Waiting for settings...</div>
+    </form>
+  </body>
+</html>

@@ -1,0 +1,186 @@
+permissions:
+  contents: write
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - ".github/**"
+      - "SFControlPanel.uplugin"
+      - "Content/**"
+      - "Source/**"
+      - "ControlPanel/**"
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+    branches:
+      - "main"
+      - "dev"
+    paths:
+      - ".github/**"
+      - "SFControlPanel.uplugin"
+      - "Content/**"
+      - "Source/**"
+      - "ControlPanel/**"
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.head_ref || github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-mod:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: SFControlPanel
+
+      - name: Ensure SML Project is up to date
+        run: git -C C:\SatisfactoryModLoader pull
+
+      - name: Remove any existing SFControlPanel
+        run: Remove-Item "C:\\SatisfactoryModLoader\\Mods\\SFControlPanel" -Recurse -ErrorAction Ignore -Confirm:$false
+
+      - name: Read uPlugin
+        id: uPlugin
+        uses: ActionsTools/read-json-action@main
+        with:
+          file_path: "SFControlPanel/SFControlPanel.uplugin"
+
+      - name: Copy SFControlPanel to Project
+        run: Copy-Item "$Env:GITHUB_WORKSPACE\\SFControlPanel" C:\SatisfactoryModLoader\Mods -Recurse -Force -Confirm:$false -ErrorAction Ignore
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build for Development Editor
+        run: C:\ue\Engine\Build\BatchFiles\Build.bat FactoryEditor Win64 Development -project="C:\\SatisfactoryModLoader\\FactoryGame.uproject"
+
+      - name: Package SFControlPanel Mod
+        run: C:\ue\Engine\Build\BatchFiles\RunUAT.bat -ScriptsForProject='C:\\SatisfactoryModLoader\\FactoryGame.uproject' PackagePlugin -Project="C:\\SatisfactoryModLoader\\FactoryGame.uproject" -dlcname=SFControlPanel -build -clientconfig=Shipping -platform=Win64 -nocompileeditor -installed -merge -utf8output
+
+      - name: Cleanup Archive and Output Folders
+        run: |
+          cmd /c "rmdir /s /q C:\workspace\Archive\SFControlPanel\Windows"
+          cmd /c "del /s /q C:\workspace\Output\SFControlPanel\*"
+
+      - name: Extract Archive
+        run: 7z x C:\SatisfactoryModLoader\Saved\ArchivedPlugins\SFControlPanel\SFControlPanel.zip -oC:\workspace\Archive\SFControlPanel
+
+      - name: Copy DLLs to Windows/WindowsServer Builds
+        run: |
+          Copy-Item "C:/SatisfactoryModLoader/Mods/SFControlPanel/Source/ThirdParty/uWebSockets/lib/*.dll" C:\workspace\Archive\SFControlPanel\Windows\Binaries\Win64 -Force -Confirm:$false -ErrorAction Ignore
+
+      - name: Upload artifacts - UnrealAutomationTool Logs
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: Logs
+          path: "$env:appdata/Unreal Engine/AutomationTool/Logs/C+ue/*"
+
+      - name: Archive Client Build Artifact
+        if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/dev' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SFControlPanel-Client.zip
+          path: C:/workspace/Archive/SFControlPanel/Windows/*
+
+      - name: Compress Archives for Release
+        if: github.ref == 'refs/heads/main'
+        run: |
+          7z a C:\workspace\Output\SFControlPanel\SFControlPanel.zip C:\workspace\Archive\SFControlPanel\*
+          7z a C:\workspace\Output\SFControlPanel\SFControlPanel-Windows.zip C:\workspace\Archive\SFControlPanel\Windows\*
+
+      - name: Release Mod
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: C:/workspace/Output/SFControlPanel/*
+          tag_name: "${{ steps.uPlugin.outputs.SemVersion }}-${{ github.run_number }}"
+
+  build-controlpanel:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ControlPanel
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ControlPanel/package-lock.json
+
+      - name: Read uPlugin
+        id: uPlugin
+        uses: ActionsTools/read-json-action@main
+        with:
+          file_path: "../SFControlPanel/SFControlPanel.uplugin"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Stream Deck plugin
+        run: npm run build
+
+      - name: Verify output
+        shell: pwsh
+        run: |
+          $pluginPath = "com.porisius.satisfactorycontrolpanel.sdPlugin"
+          $manifestPath = Join-Path $pluginPath "manifest.json"
+          $binPath = Join-Path $pluginPath "bin/plugin.js"
+
+          if (!(Test-Path $manifestPath)) {
+            Write-Error "Missing manifest.json at $manifestPath"
+          }
+
+          if (!(Test-Path $binPath)) {
+            Write-Error "Missing plugin.js at $binPath"
+          }
+
+          Write-Host "ControlPanel build output verified."
+
+      - name: Package Stream Deck plugin zip
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+        shell: pwsh
+        run: |
+          $zipName = "SFControlPanel-StreamDeck.zip"
+          if (Test-Path $zipName) {
+            Remove-Item $zipName -Force
+          }
+          Compress-Archive -Path "com.porisius.satisfactorycontrolpanel.sdPlugin" -DestinationPath $zipName
+
+      - name: Create StreamDeckPlugin package
+        if: github.ref == 'refs/heads/main'
+        shell: pwsh
+        run: |
+          Copy-Item SFControlPanel-StreamDeck.zip SFControlPanel.streamDeckPlugin
+
+      - name: Upload Stream Deck artifact
+        if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/dev' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SFControlPanel-StreamDeck.zip
+          path: SFControlPanel-StreamDeck.zip
+
+      - name: Release Stream Deck plugin
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            D:/a/SFControlPanel/SFControlPanel/ControlPanel/SFControlPanel-StreamDeck.zip
+            D:/a/SFControlPanel/SFControlPanel/ControlPanel/SFControlPanel.streamDeckPlugin
+          tag_name: "${{ steps.uPlugin.outputs.SemVersion }}-${{ github.run_number }}"

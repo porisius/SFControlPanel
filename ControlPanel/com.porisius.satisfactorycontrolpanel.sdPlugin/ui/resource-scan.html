@@ -1,0 +1,171 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Satisfactory Control Panel - Resource Scan</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="common.js"></script>
+    <script>
+      function collectSettings() {
+        const buttonLabel = document.querySelector('[name="buttonLabel"]').value.trim();
+        const portRaw = document.querySelector('[name="port"]').value.trim();
+        const descriptor = document.querySelector('[name="descriptor"]').value.trim();
+        const friendlyName = document.querySelector('[name="friendlyName"]').value.trim();
+
+        return {
+          buttonLabel,
+          port: Number.parseInt(portRaw || "59384", 10),
+          descriptor,
+          friendlyName
+        };
+      }
+
+      function ensureDescriptorOption(select, descriptor, friendlyName) {
+        if (!descriptor) return;
+
+        const existing = Array.from(select.options).find(opt => opt.value === descriptor);
+        if (existing) {
+          select.value = descriptor;
+          return;
+        }
+
+        const opt = document.createElement("option");
+        opt.value = descriptor;
+        opt.textContent = friendlyName || descriptor;
+        opt.dataset.friendlyName = friendlyName || "";
+        select.appendChild(opt);
+        select.value = descriptor;
+      }
+
+      async function refreshItems() {
+        const port = Number.parseInt(document.querySelector('[name="port"]').value || "59384", 10);
+        const select = document.getElementById("descriptorSelect");
+        const saved = getSavedSettings();
+        const savedDescriptor = saved.descriptor || "";
+        const savedFriendlyName = saved.friendlyName || "";
+
+        select.innerHTML = '<option value="">Loading…</option>';
+        updateInspectorStatus("Loading resources...");
+
+        try {
+          const data = await loadJson(`http://localhost:${port}/api/v1/resource/list`);
+          select.innerHTML = '<option value="">Select resource…</option>';
+
+          for (const item of data) {
+            const descriptor = item.descriptor ?? item.id ?? "";
+            const friendlyName = item.friendlyName ?? item.displayName ?? item.name ?? descriptor;
+            const opt = document.createElement("option");
+            opt.value = descriptor;
+            opt.textContent = friendlyName;
+            opt.dataset.friendlyName = friendlyName;
+            select.appendChild(opt);
+          }
+
+          ensureDescriptorOption(select, savedDescriptor, savedFriendlyName);
+          updateInspectorStatus("Resources loaded");
+        } catch (error) {
+          console.error(error);
+          select.innerHTML = '<option value="">Failed to load resources</option>';
+          updateInspectorStatus("Failed to load resources");
+        }
+      }
+
+      async function regenIcons() {
+        const port = Number.parseInt(document.querySelector('[name="port"]').value || "59384", 10);
+        updateInspectorStatus("Requesting icon regeneration...");
+
+        try {
+          const response = await fetch(`http://localhost:${port}/api/v1/resource/regen`, { method: "GET" });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          updateInspectorStatus("Resource icon regeneration requested");
+        } catch (error) {
+          console.error(error);
+          updateInspectorStatus("Failed to request icon regeneration");
+        }
+      }
+
+      function saveNow() {
+        setSettings(collectSettings());
+      }
+
+      async function applyLoadedSettings(settings) {
+        const form = document.getElementById("settingsForm");
+        const select = document.getElementById("descriptorSelect");
+        applySettingsToForm(form, settings || {});
+        await refreshItems();
+        ensureDescriptorOption(select, settings?.descriptor || "", settings?.friendlyName || "");
+        updateInspectorStatus("Settings loaded");
+      }
+
+      document.addEventListener("DOMContentLoaded", async () => {
+        const form = document.getElementById("settingsForm");
+        const select = document.getElementById("descriptorSelect");
+        const portInput = document.querySelector('[name="port"]');
+
+        window.addEventListener("scp:settings", async (ev) => {
+          await applyLoadedSettings(ev.detail || {});
+        });
+
+        form.addEventListener("change", saveNow);
+
+        select.addEventListener("change", () => {
+          const option = select.selectedOptions[0];
+          const descriptor = option?.value || "";
+          const friendlyName = option?.dataset?.friendlyName || "";
+          document.querySelector('[name="descriptor"]').value = descriptor;
+          document.querySelector('[name="friendlyName"]').value = friendlyName;
+          saveNow();
+        });
+
+        document.getElementById("refreshButton").addEventListener("click", async () => {
+          await refreshItems();
+          saveNow();
+        });
+
+        document.getElementById("regenButton").addEventListener("click", regenIcons);
+
+        portInput.addEventListener("change", async () => {
+          await refreshItems();
+          saveNow();
+        });
+
+        const cached = getSavedSettings();
+        if (cached && Object.keys(cached).length > 0) {
+          await applyLoadedSettings(cached);
+        } else {
+          updateInspectorStatus("Waiting for settings...");
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <form id="settingsForm">
+      <fieldset>
+        <legend>Resource Scan Action</legend>
+
+        <label>Optional Text Override
+          <input name="buttonLabel" placeholder="Blank = icon only. Use \n for 2 lines." />
+        </label>
+
+        <label>Port
+          <input name="port" type="number" value="59384" />
+        </label>
+
+        <label>Resource
+          <select id="descriptorSelect">
+            <option value="">Select resource…</option>
+          </select>
+        </label>
+
+        <button type="button" id="refreshButton">Refresh Resources</button>
+        <button type="button" id="regenButton">Regenerate Icons Once</button>
+        <div class="hint">Only do this once unless icons truly need rebuilding.</div>
+      </fieldset>
+
+      <input type="hidden" name="descriptor" />
+      <input type="hidden" name="friendlyName" />
+
+      <div class="hint" id="statusText">Waiting for settings...</div>
+    </form>
+  </body>
+</html>

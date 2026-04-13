@@ -1,0 +1,127 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "Name": "Satisfactory Control Panel",
+  "UUID": "com.porisius.satisfactorycontrolpanel",
+  "Version": "0.1.0.8",
+  "Author": "Chris Wall",
+  "Description": "Control Satisfactory buildables, blueprints, customizers, swatches, scans, and actions.",
+  "CodePath": "bin/plugin.js",
+  "Category": "Satisfactory Control Panel",
+  "CategoryIcon": "imgs/plugin/category",
+  "Icon": "imgs/plugin/category",
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "6.9"
+  },
+  "Nodejs": {
+    "Version": "20"
+  },
+  "OS": [
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    },
+    {
+      "Platform": "mac",
+      "MinimumVersion": "13"
+    }
+  ],
+  "Actions": [
+    {
+      "Name": "Buildable",
+      "UUID": "com.porisius.satisfactorycontrolpanel.buildable",
+      "Icon": "imgs/actions/buildable",
+      "Tooltip": "Select a Satisfactory buildable",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/buildable.html",
+      "States": [
+        {
+          "Image": "imgs/actions/buildable",
+          "TitleAlignment": "middle"
+        }
+      ]
+    },
+    {
+      "Name": "Blueprint",
+      "UUID": "com.porisius.satisfactorycontrolpanel.blueprint",
+      "Icon": "imgs/actions/blueprint",
+      "Tooltip": "Select a Satisfactory blueprint",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/blueprint.html",
+      "States": [
+        {
+          "Image": "imgs/actions/blueprint",
+          "TitleAlignment": "middle"
+        }
+      ]
+    },
+    {
+      "Name": "Execute",
+      "UUID": "com.porisius.satisfactorycontrolpanel.execute",
+      "Icon": "imgs/actions/execute",
+      "Tooltip": "Execute a Satisfactory action",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/execute.html",
+      "States": [
+        {
+          "Image": "imgs/actions/execute",
+          "TitleAlignment": "middle"
+        }
+      ]
+    },
+    {
+      "Name": "Customizer",
+      "UUID": "com.porisius.satisfactorycontrolpanel.customizer",
+      "Icon": "imgs/actions/customizer",
+      "Tooltip": "Select a Satisfactory customizer",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/customizer.html",
+      "States": [
+        {
+          "Image": "imgs/actions/customizer",
+          "TitleAlignment": "middle"
+        }
+      ]
+    },
+    {
+      "Name": "Resource Scan",
+      "UUID": "com.porisius.satisfactorycontrolpanel.resourcescan",
+      "Icon": "imgs/actions/resourcescan",
+      "Tooltip": "Select a Satisfactory resource scan target",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/resource-scan.html",
+      "States": [
+        {
+          "Image": "imgs/actions/resourcescan",
+          "TitleAlignment": "middle"
+        }
+      ]
+    },
+    {
+      "Name": "Swatch",
+      "UUID": "com.porisius.satisfactorycontrolpanel.swatch",
+      "Icon": "imgs/actions/swatch",
+      "Tooltip": "Select a Satisfactory swatch",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/swatch.html",
+      "States": [
+        {
+          "Image": "imgs/actions/swatch",
+          "TitleAlignment": "middle"
+        }
+      ]
+    }
+  ]
+}
