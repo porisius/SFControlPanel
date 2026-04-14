@@ -6,6 +6,8 @@ Ever tire of scrolling through menus and hotbars to find that one blueprint, bui
 
 Welcome to SCP where you can use your Elgato Stream Deck or your own smartphone/tablet with the Elgato Mobile App. You can also use anything you wish to connect to the mod to use its features. This is not restricted to the Elgato Ecosystem, however, I have no plans to actively support anything else. However, I will provide the API below so that you can create your own.
 
+This was inspired from another mod/plugin created by Kaz Wolfe called [XIVDeck](https://github.com/KazWolfe/XIVDeck). So, special thanks for his permission to use his code to help develop this mod.
+
 ## Elgato Stream Deck Mobile Apps
 
 Download:  
@@ -14,6 +16,11 @@ Download:
 
 Information:  
 [Elgato Official Mobile App Site](https://www.elgato.com/us/en/s/stream-deck-mobile)
+
+
+## Example
+
+![Teaser Image](https://github.com/porisius/SFControlPanel/blob/main/Resources/example.jpg "Teaser Image")
 
 ## Getting Started
 
