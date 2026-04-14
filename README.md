@@ -17,11 +17,21 @@ Information:
 
 ## Getting Started
 
+### Multiplayer
+
+This mod has been tested on a dedicated server. There are no server builds because this is a Client only mod. While everyone does have to have the Satisfactory Mod Loader installed for multiplayer, not everyone is required for this mod. If you planning to use with a Dedicated Server, the server does require the Mod Loader to be compatible.
+
 ### Installing the Plugin
 
 The Control Panel plugins are available for download from this repository's [Releases page](https://github.com/porisius/SFControlPanel/releases/latest).  
 To install the Stream Deck plugin, simply open the SFControl.streamDeckPlugin file. The Elgato Stream Deck software will take care of all installation steps.  
 To install the Satisfactory Control Panel Mod, simply add it through the [Satisfactory Mod Manager](https://smm.ficsit.app).
+
+## How this mod works
+
+The mod opens a HTTP Web Server port on TCP 59384 (configurable in later releases) on the localhost adapter (127.0.0.1). This listens for a Stream Desk or any device that sends HTTP GET Requests to the Mod loaded to Satisfactory.
+
+Simple `curl` commands are able to be used to test this mod.
 
 ## API List
 
