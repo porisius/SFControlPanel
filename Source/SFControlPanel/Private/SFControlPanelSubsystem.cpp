@@ -1,25 +1,26 @@
 #include "SFControlPanelSubsystem.h"
 
-#include "BlueprintAssetHelperLibrary.h"
+#include <sstream>
+
 #include "Runtime/Core/Public/Logging/LogCategory.h"
 #include "EngineUtils.h"
 #include "FGBlueprintSubsystem.h"
-#include "FGBuildGunBuild.h"
 #include "FGCustomizationRecipe.h"
 #include "FGRecipeManager.h"
-#include "FGResourceScanner.h"
 #include "FGUnlockSubsystem.h"
 #include "Async/Async.h"
-#include "StructuredLog.h"
+#include "Logging/StructuredLog.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
 #include "ImageUtils.h"
-#include "NativeHookManager.h"
+#include "Equipment/FGBuildGunBuild.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMaterialLibrary.h"
 #include "Kismet/KismetRenderingLibrary.h"
 #include "Kismet/KismetStringLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Policies/CondensedJsonPrintPolicy.h"
+#include "Serialization/JsonSerializer.h"
 
 us_listen_socket_t* SocketListener;
 bool SocketRunning = false;
@@ -135,6 +136,7 @@ void ADeckModSubsystem::GenerateRecipes()
 		if (UKismetSystemLibrary::GetClassDisplayName(UFGRecipe::GetProducedIn(Recipe)[0]) == "BP_BuildGun_C")
 			Descriptors.FindOrAdd(UKismetSystemLibrary::GetClassDisplayName(UFGRecipe::GetProducts(Recipe)[0].ItemClass), Recipe);
 	}
+	
 }
 
 void ADeckModSubsystem::StartWebSocketServer(bool bSkipIfRunning) 
@@ -323,9 +325,8 @@ void ADeckModSubsystem::StartWebSocketServer(bool bSkipIfRunning)
 				App.get("/api/v1/recipe/list", [this, World](auto* res, auto* req)
 				{
 					TSharedRef<FJsonObject> DescriptorsJson = MakeShareable(new FJsonObject());
-					TArray<FString> DescriptorKey{};
 					TArray<TSharedPtr<FJsonValue>> DescriptorJsonArray;
-					Descriptors.GenerateKeyArray(DescriptorKey);
+					
 					for (auto [Descriptor, Recipe] : Descriptors)
 					{
 						TSharedPtr<FJsonObject> DescriptorJson = MakeShared<FJsonObject>();
@@ -876,11 +877,11 @@ void ADeckModSubsystem::OnMessageReceived(uWS::WebSocket<false, true, FWebSocket
 
 void ADeckModSubsystem::ProcessClientRequest(uWS::WebSocket<false, true, FWebSocketUserData>* ws, const TSharedPtr<FJsonObject>& JsonRequest)
 {
-    FString Action = JsonRequest->GetStringField("action");
+    FString Action = JsonRequest->GetStringField(TEXT("action"));
     const TArray<TSharedPtr<FJsonValue>>* EndpointsArray;
     FString Endpoint;
 
-    if (JsonRequest->TryGetArrayField("endpoints", EndpointsArray))
+    if (JsonRequest->TryGetArrayField(TEXT("endpoints"), EndpointsArray))
     {
         for (const TSharedPtr<FJsonValue>& EndpointValue : *EndpointsArray)
         {
@@ -910,7 +911,7 @@ void ADeckModSubsystem::ProcessClientRequest(uWS::WebSocket<false, true, FWebSoc
             }
         }
     }
-    else if (JsonRequest->TryGetStringField("endpoints", Endpoint)) {
+    else if (JsonRequest->TryGetStringField(TEXT("endpoints"), Endpoint)) {
 
         if (Action == "subscribe")
         {

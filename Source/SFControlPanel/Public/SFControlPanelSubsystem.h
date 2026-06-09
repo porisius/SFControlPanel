@@ -3,8 +3,8 @@
 
 #include "FGFactoryColoringTypes.h"
 #include "FGRecipe.h"
-#include "FGUnlockScannableResource.h"
-#include "ModSubsystem.h"
+#include "Unlocks/FGUnlockScannableResource.h"
+#include "Subsystem/ModSubsystem.h"
 #include "Containers/Map.h"
 
 THIRD_PARTY_INCLUDES_START
